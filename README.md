@@ -1,4 +1,4 @@
-# Semaphore Classification Service Python Client
+# Semaphore Classification Service Python Client z
 
 Python client for the Semaphore Classification Service with enhanced features.
 
