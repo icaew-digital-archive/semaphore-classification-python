@@ -239,7 +239,7 @@ def main():
     
     # Initialize client
     try:
-        client = ICAEWClassificationClient()
+        client = SemaphoreClassificationClient()
         print("✅ Client initialized successfully")
         
         # Display service info
