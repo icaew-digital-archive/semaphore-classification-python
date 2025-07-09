@@ -1,26 +1,16 @@
 #!/usr/bin/env python3
 """
 Semaphore helper script that processes files and outputs Generic_UPWARD classifications sorted by score.
-Similar to the Java-based semaphore-helper.py but using the Python client.
 """
 
 import argparse
 import os
 import sys
 import json
+import subprocess
 from pathlib import Path
 from semaphore_classification_client import SemaphoreClassificationClient
 from typing import Optional, Dict, Any
-
-def get_supported_extensions():
-    """Return list of file extensions that are likely to contain text."""
-    return [
-        '.txt', '.md', '.rst', '.py', '.js', '.html', '.htm', '.xml', '.json',
-        '.csv', '.tsv', '.log', '.cfg', '.conf', '.ini', '.yaml', '.yml',
-        '.doc', '.docx', '.pdf', '.rtf', '.odt', '.pages',
-        '.xls', '.xlsx', '.ods', '.numbers',
-        '.ppt', '.pptx', '.odp', '.key'
-    ]
 
 def classify_file(client: SemaphoreClassificationClient, file_path: str, 
                  threshold: Optional[int] = None, title: Optional[str] = None) -> Dict[str, Any]:
@@ -41,7 +31,7 @@ def classify_file(client: SemaphoreClassificationClient, file_path: str,
 
 def main():
     parser = argparse.ArgumentParser(description="Process files with Semaphore Classification Service")
-    parser.add_argument("directory", help="Directory containing files to classify")
+    parser.add_argument("directory", nargs='?', default='./downloads', help="Directory containing files to classify (default: ./downloads)")
     parser.add_argument("--threshold", type=int, default=48, help="Classification threshold (1-99, default: 48)")
     parser.add_argument("--recursive", action="store_true", help="Process subdirectories recursively")
     parser.add_argument("--api-key", help="Semaphore API key (overrides environment variable)")
@@ -50,8 +40,37 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output in JSON format for programmatic use")
     parser.add_argument("--csv", type=str, metavar="FILENAME", help="Output in CSV format to specified file")
     parser.add_argument("--raw-json", action="store_true", help="Print full raw classification responses to stdout as JSON")
+    parser.add_argument("--preservica-folder-ref", help="Download assets from Preservica folder before classification")
     
     args = parser.parse_args()
+    
+    # Handle Preservica download if specified
+    if args.preservica_folder_ref:
+        print(f"📥 Downloading assets from Preservica folder: {args.preservica_folder_ref}")
+        try:
+            # Call the download_preservica_assets.py script
+            cmd = [
+                sys.executable, "download_preservica_assets.py", "--use-asset-ref",
+                "--folder", args.preservica_folder_ref,
+                args.directory
+            ]
+            print(f"Running command: {' '.join(cmd)}")
+            # Pass the current environment to the subprocess
+            env = os.environ.copy()
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=os.getcwd(), env=env)
+            print("✅ Preservica download completed successfully")
+            if result.stdout:
+                print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to download from Preservica: {e}")
+            if e.stdout:
+                print(f"stdout: {e.stdout}")
+            if e.stderr:
+                print(f"stderr: {e.stderr}")
+            sys.exit(1)
+        except FileNotFoundError:
+            print("❌ download_preservica_assets.py script not found in current directory")
+            sys.exit(1)
     
     # Initialize client
     try:
@@ -68,19 +87,12 @@ def main():
         print(f"❌ Directory not found: {directory}")
         sys.exit(1)
     
-    # Collect files
-    files_to_process = []
-    extensions = get_supported_extensions()
-    
+    # Collect all files (no extension filtering)
     if args.recursive:
-        for ext in extensions:
-            files_to_process.extend(directory.rglob(f"*{ext}"))
+        files_to_process = [f for f in directory.rglob("*") if f.is_file()]
     else:
-        for ext in extensions:
-            files_to_process.extend(directory.glob(f"*{ext}"))
-    
-    files_to_process = [f for f in files_to_process if f.is_file()]
-    
+        files_to_process = [f for f in directory.glob("*") if f.is_file()]
+
     print(f"📁 Found {len(files_to_process)} files to process")
     
     # Process files
@@ -150,6 +162,12 @@ def main():
                 
             else:
                 file_result["error"] = result["error"]
+                if args.raw_json:
+                    raw_results.append({
+                        "file": str(file_path),
+                        "filename": file_path.name,
+                        "raw_result": {"error": result["error"]}
+                    })
                 if args.json or args.csv:
                     results.append(file_result)
                 else:
