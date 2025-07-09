@@ -48,7 +48,8 @@ def main():
     parser.add_argument("--include-scoring", action="store_true", help="Include score values in output")
     parser.add_argument("--max-topics", type=int, default=10, help="Maximum number of topics to show per file")
     parser.add_argument("--json", action="store_true", help="Output in JSON format for programmatic use")
-    parser.add_argument("--csv", action="store_true", help="Output in CSV format for programmatic use")
+    parser.add_argument("--csv", type=str, metavar="FILENAME", help="Output in CSV format to specified file")
+    parser.add_argument("--raw-json", action="store_true", help="Print full raw classification responses to stdout as JSON")
     
     args = parser.parse_args()
     
@@ -84,6 +85,7 @@ def main():
     
     # Process files
     results = []
+    raw_results = []
     
     for file_path in files_to_process:
         file_result = {
@@ -98,6 +100,14 @@ def main():
                                  threshold=args.threshold, 
                                  title=file_path.stem)
             
+            # Save the raw result for this file
+            if args.raw_json:
+                raw_results.append({
+                    "file": str(file_path),
+                    "filename": file_path.name,
+                    "raw_result": result
+                })
+
             # Parse results
             if "error" not in result:
                 parsed = client.parse_classification_results(result)
@@ -149,6 +159,12 @@ def main():
                 
         except Exception as e:
             file_result["error"] = str(e)
+            if args.raw_json:
+                raw_results.append({
+                    "file": str(file_path),
+                    "filename": file_path.name,
+                    "raw_result": {"error": str(e)}
+                })
             if args.json or args.csv:
                 results.append(file_result)
             else:
@@ -161,21 +177,41 @@ def main():
         print(json.dumps(results, indent=2))
     elif args.csv:
         import csv
-        import sys
-        writer = csv.writer(sys.stdout)
-        writer.writerow(["file", "filename", "topic", "score", "error"])
-        for result in results:
-            if result["error"]:
-                writer.writerow([result["file"], result["filename"], "", "", result["error"]])
-            else:
-                for classification in result["classifications"]:
-                    writer.writerow([
-                        result["file"], 
-                        result["filename"], 
-                        classification["topic"], 
-                        classification["score"],
-                        ""
-                    ])
+        try:
+            # Find the maximum number of topics for any file
+            max_topics = 0
+            for result in results:
+                if not result["error"]:
+                    num_topics = len(result["classifications"])
+                    if num_topics > max_topics:
+                        max_topics = num_topics
+
+            # Prepare header: filename, error, then 'topic' columns
+            header = ["filename", "error"] + ["topic"] * max_topics
+
+            with open(args.csv, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(header)
+
+                for result in results:
+                    row = [result["filename"]]
+                    row.append(result["error"] if result["error"] else "")
+                    if not result["error"]:
+                        topics = [c["topic"] for c in result["classifications"]]
+                        # Pad with empty strings if fewer topics than max
+                        topics += [""] * (max_topics - len(topics))
+                        row.extend(topics)
+                    else:
+                        # If error, fill topic columns with empty strings
+                        row.extend([""] * max_topics)
+                    writer.writerow(row)
+            print(f"✅ CSV output written to: {args.csv}")
+        except Exception as e:
+            print(f"❌ Failed to write CSV file: {e}")
+            sys.exit(1)
+
+    if args.raw_json:
+        print(json.dumps(raw_results, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     main() 
