@@ -12,6 +12,9 @@ from pathlib import Path
 from semaphore_classification_client import SemaphoreClassificationClient
 from typing import Optional, Dict, Any
 
+# Configuration
+DOWNLOAD_SCRIPT = "download_preservica_assets.py"
+
 def classify_file(client: SemaphoreClassificationClient, file_path: str, 
                  threshold: Optional[int] = None, title: Optional[str] = None) -> Dict[str, Any]:
     """Classify a single file and return results."""
@@ -50,7 +53,7 @@ def main():
         try:
             # Call the download_preservica_assets.py script
             cmd = [
-                sys.executable, "download_preservica_assets.py", "--use-asset-ref",
+                sys.executable, DOWNLOAD_SCRIPT, "--use-asset-ref",
                 "--folder", args.preservica_folder_ref,
                 args.directory
             ]
