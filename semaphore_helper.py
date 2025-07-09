@@ -44,6 +44,7 @@ def main():
     parser.add_argument("--csv", type=str, metavar="FILENAME", help="Output in CSV format to specified file")
     parser.add_argument("--raw-json", action="store_true", help="Print full raw classification responses to stdout as JSON")
     parser.add_argument("--preservica-folder-ref", help="Download assets from Preservica folder before classification")
+    parser.add_argument("--keep-files", action="store_true", help="Keep downloaded files after processing (default: auto-delete)")
     
     args = parser.parse_args()
     
@@ -208,7 +209,7 @@ def main():
                         max_topics = num_topics
 
             # Prepare header: filename, error, then 'topic' columns
-            header = ["filename", "error"] + ["topic"] * max_topics
+            header = ["filename", "error"] + ["dc:subject"] * max_topics
 
             with open(args.csv, 'w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.writer(csvfile)
@@ -233,6 +234,24 @@ def main():
 
     if args.raw_json:
         print(json.dumps(raw_results, indent=2, ensure_ascii=False))
+
+    # Cleanup: Delete downloaded files unless --keep-files is specified
+    if args.preservica_folder_ref and not args.keep_files:
+        print(f"🧹 Cleaning up downloaded files from {args.directory}")
+        try:
+            directory = Path(args.directory)
+            if directory.exists():
+                for file_path in directory.iterdir():
+                    if file_path.is_file():
+                        file_path.unlink()
+                        print(f"  Deleted: {file_path.name}")
+                # Remove the directory if it's empty
+                if not any(directory.iterdir()):
+                    directory.rmdir()
+                    print(f"  Removed empty directory: {directory}")
+            print("✅ Cleanup completed")
+        except Exception as e:
+            print(f"⚠️  Warning: Failed to cleanup some files: {e}")
 
 if __name__ == "__main__":
     main() 
