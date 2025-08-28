@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Configuration
 DOWNLOAD_SCRIPT = os.getenv('DOWNLOAD_SCRIPT', 'fallback_path_here')
