@@ -39,7 +39,7 @@ python3 semaphore_helper.py /path/to/documents
 - `--recursive` — Process subdirectories
 
 **Example CSV Output:**
-| filename   | error | topic                | topic                  | ... |
+| assetId    | error | dc:subject           | dc:subject             | ... |
 |------------|-------|----------------------|------------------------|-----|
 | file1.pdf  |       | Topic A              | Topic B                |     |
 | file2.pdf  |       | Topic C              |                        |     |
@@ -56,7 +56,16 @@ python3 semaphore_helper.py /path/to/documents
 
 ## Environment
 
-Set your API key in `.env` or as `SEMAPHORE_API_KEY`.
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# Semaphore API key
+SEMAPHORE_API_KEY=your_api_key_here
+
+# Path to the download_preservica_assets.py script (for Preservica integration)
+DOWNLOAD_SCRIPT=/path/to/your/download_preservica_assets.py
+```
+
 
 ---
 
