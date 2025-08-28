@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
 Semaphore helper script that processes files and outputs Generic_UPWARD classifications sorted by score.
+
+This script can also integrate with Preservica to download assets before classification.
+It requires the DOWNLOAD_SCRIPT environment variable to be set to the path of 
+download_preservica_assets.py script for Preservica integration to work.
 """
 
 import argparse
@@ -37,7 +41,16 @@ def classify_file(client: SemaphoreClassificationClient, file_path: str,
     return result
 
 def main():
-    parser = argparse.ArgumentParser(description="Process files with Semaphore Classification Service")
+    """
+    Main function that processes files for classification.
+    
+    Features:
+    - File classification using Semaphore Classification Service
+    - Optional Preservica integration for asset downloading
+    - Multiple output formats (JSON, CSV, human-readable)
+    - Recursive directory processing
+    """
+    parser = argparse.ArgumentParser(description="Process files with Semaphore Classification Service. Can also download assets from Preservica before classification.")
     parser.add_argument("directory", nargs='?', default='./downloads', help="Directory containing files to classify (default: ./downloads)")
     parser.add_argument("--threshold", type=int, default=48, help="Classification threshold (1-99, default: 48)")
     parser.add_argument("--recursive", action="store_true", help="Process subdirectories recursively")
@@ -47,8 +60,8 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output in JSON format for programmatic use")
     parser.add_argument("--csv", type=str, metavar="FILENAME", help="Output in CSV format to specified file")
     parser.add_argument("--raw-json", action="store_true", help="Print full raw classification responses to stdout as JSON")
-    parser.add_argument("--preservica-folder-ref", help="Download assets from Preservica folder before classification")
-    parser.add_argument("--keep-files", action="store_true", help="Keep downloaded files after processing (default: auto-delete)")
+    parser.add_argument("--preservica-folder-ref", help="Download assets from Preservica folder before classification (requires DOWNLOAD_SCRIPT env var)")
+    parser.add_argument("--keep-files", action="store_true", help="Keep downloaded files after processing (default: auto-delete when using Preservica)")
     
     args = parser.parse_args()
     
