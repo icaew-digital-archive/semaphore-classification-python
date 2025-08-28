@@ -11,9 +11,13 @@ import subprocess
 from pathlib import Path
 from semaphore_classification_client import SemaphoreClassificationClient
 from typing import Optional, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configuration
-DOWNLOAD_SCRIPT = "/home/digital-archivist/Documents/custom scripts/digital-archiving-scripts/pypreservica scripts/download_preservica_assets.py"
+DOWNLOAD_SCRIPT = os.getenv('DOWNLOAD_SCRIPT', 'fallback_path_here')
 
 def classify_file(client: SemaphoreClassificationClient, file_path: str, 
                  threshold: Optional[int] = None, title: Optional[str] = None) -> Dict[str, Any]:
@@ -51,6 +55,14 @@ def main():
     # Handle Preservica download if specified
     if args.preservica_folder_ref:
         print(f"📥 Downloading assets from Preservica folder: {args.preservica_folder_ref}")
+        
+        # Validate download script path
+        if not os.path.exists(DOWNLOAD_SCRIPT):
+            print(f"❌ Download script not found at: {DOWNLOAD_SCRIPT}")
+            print("   Please set the DOWNLOAD_SCRIPT environment variable or update the .env file")
+            print("   Expected location: /home/digital-archivist/Documents/custom scripts/digital-archiving-scripts/pypreservica scripts/download_preservica_assets.py")
+            sys.exit(1)
+            
         try:
             # Call the download_preservica_assets.py script
             cmd = [
