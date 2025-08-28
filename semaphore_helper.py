@@ -62,6 +62,8 @@ def main():
     parser.add_argument("--raw-json", action="store_true", help="Print full raw classification responses to stdout as JSON")
     parser.add_argument("--preservica-folder-ref", help="Download assets from Preservica folder before classification (requires DOWNLOAD_SCRIPT env var)")
     parser.add_argument("--keep-files", action="store_true", help="Keep downloaded files after processing (default: auto-delete when using Preservica)")
+    parser.add_argument("--exclude-extensions", nargs="+", default=[], help="Exclude files with these extensions (e.g., mp4 avi mov)")
+    parser.add_argument("--include-extensions", nargs="+", default=[], help="Only process files with these extensions (e.g., pdf txt doc)")
     
     args = parser.parse_args()
     
@@ -121,6 +123,26 @@ def main():
         files_to_process = [f for f in directory.rglob("*") if f.is_file()]
     else:
         files_to_process = [f for f in directory.glob("*") if f.is_file()]
+
+    # Apply file type filtering
+    if args.exclude_extensions or args.include_extensions:
+        filtered_files = []
+        for file_path in files_to_process:
+            file_ext = file_path.suffix.lower().lstrip('.')
+            
+            # If include_extensions is specified, only process those extensions
+            if args.include_extensions:
+                if file_ext in [ext.lower().lstrip('.') for ext in args.include_extensions]:
+                    filtered_files.append(file_path)
+            # Otherwise, apply exclude_extensions filter
+            elif args.exclude_extensions:
+                if file_ext not in [ext.lower().lstrip('.') for ext in args.exclude_extensions]:
+                    filtered_files.append(file_path)
+            else:
+                filtered_files.append(file_path)
+        
+        files_to_process = filtered_files
+        print(f"🔍 After filtering: {len(files_to_process)} files to process")
 
     print(f"📁 Found {len(files_to_process)} files to process")
     
