@@ -89,10 +89,10 @@ class SemaphoreClassificationClient:
         
         response = requests.post(endpoint, data=data, headers=headers)
         response.raise_for_status()
-        
+
         try:
             return response.json()
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             return {"raw_response": response.text}
     
     def classify_file(self, file_path: str, title: Optional[str] = None, threshold: Optional[int] = None,
@@ -136,10 +136,10 @@ class SemaphoreClassificationClient:
             
             response = requests.post(endpoint, files=files, data=data, headers=headers)
             response.raise_for_status()
-        
+
         try:
             return response.json()
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             return {"raw_response": response.text}
     
     def parse_classification_results(self, result: Dict[str, Any]) -> Dict[str, Any]:
